@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.3"
+HuntAnalyzer.VERSAO = "2.4"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -785,20 +785,50 @@ function HA.pct(a, b)
     return math.floor((a - b) / b * 100 + 0.5)
 end
 
-function HA.motivo(maisBichos, maisPorBicho, pk, pb, oque)
-    local fk = pk and (" (+" .. pk .. "%)") or ""
-    local fb = pb and (" (+" .. pb .. "%)") or ""
-    if maisBichos and maisPorBicho then
-        return "Matou mais bichos por hora" .. fk .. " e cada bicho deu mais " .. oque .. fb .. "."
-    elseif maisBichos then
-        return "Matou mais bichos por hora" .. fk .. ", mesmo cada bicho dando menos " .. oque .. "."
-    elseif maisPorBicho then
-        return "Cada bicho deu mais " .. oque .. fb .. ", mesmo matando menos bichos por hora."
+HA.COR_TEXTO = "#DDDDDD"
+HA.COR_NOME = "#FFD24A"
+HA.COR_MELHOR = "#55DD55"
+HA.COR_PIOR = "#FF5555"
+
+function HA.motivo(add, maisBichos, maisPorBicho, pk, pb, oque)
+    local function pct(p)
+        if p then
+            add(" (")
+            add("+" .. p .. "%", HA.COR_MELHOR)
+            add(")")
+        end
     end
-    return ""
+    if maisBichos and maisPorBicho then
+        add(" Matou ")
+        add("mais bichos por hora", HA.COR_MELHOR)
+        pct(pk)
+        add(" e cada bicho deu ")
+        add("mais " .. oque, HA.COR_MELHOR)
+        pct(pb)
+        add(".")
+    elseif maisBichos then
+        add(" Matou ")
+        add("mais bichos por hora", HA.COR_MELHOR)
+        pct(pk)
+        add(", mesmo cada bicho dando ")
+        add("menos " .. oque, HA.COR_PIOR)
+        add(".")
+    elseif maisPorBicho then
+        add(" Cada bicho deu ")
+        add("mais " .. oque, HA.COR_MELHOR)
+        pct(pb)
+        add(", mesmo matando ")
+        add("menos bichos por hora", HA.COR_PIOR)
+        add(".")
+    end
 end
 
 function HA.explicar(ra, rb)
+    local partes = {}
+    local function add(txt, cor)
+        table.insert(partes, txt)
+        table.insert(partes, cor or HA.COR_TEXTO)
+    end
     local nomes = {}
     nomes[ra] = HA.cortar(ra.nome, 14)
     nomes[rb] = HA.cortar(rb.nome, 14)
@@ -809,47 +839,86 @@ function HA.explicar(ra, rb)
     local function porBicho(r, campo) return r[campo] / math.max(r.kills, 1) end
     local function comparar(titulo, campo, fmt)
         local va, vb = HA.porHoraTeste(ra, campo), HA.porHoraTeste(rb, campo)
-        if va == vb then return titulo .. ": empate.", nil, nil end
+        add(titulo .. ": ")
+        if va == vb then
+            add("empate.")
+            return nil, nil
+        end
         local w, l, vw, vl = ra, rb, va, vb
         if vb > va then w, l, vw, vl = rb, ra, vb, va end
         local p = HA.pct(vw, vl)
-        return titulo .. ": " .. nomes[w] .. " melhor" .. (p and (" (+" .. p .. "%)") or "") ..
-            ", " .. fmt(vw) .. " x " .. fmt(vl) .. ".", w, l
+        add(nomes[w], HA.COR_NOME)
+        add(" melhor")
+        if p then
+            add(" (")
+            add("+" .. p .. "%", HA.COR_MELHOR)
+            add(")")
+        end
+        add(", ")
+        add(fmt(vw), HA.COR_MELHOR)
+        add(" x ")
+        add(fmt(vl), HA.COR_PIOR)
+        add(".")
+        return w, l
     end
-    local linhas = {}
-    local txt, w, l = comparar("XP/h", "xp", HA.formatar)
+    local function paragrafo()
+        if #partes > 0 then add("\n\n") end
+    end
+
+    local w, l = comparar("XP/h", "xp", HA.formatar)
     if w then
         local kw, kl = HA.porHoraTeste(w, "kills"), HA.porHoraTeste(l, "kills")
         local bw, bl = porBicho(w, "xp"), porBicho(l, "xp")
-        txt = txt .. " " .. HA.motivo(kw > kl, bw > bl, HA.pct(kw, kl), HA.pct(bw, bl), "XP")
+        HA.motivo(add, kw > kl, bw > bl, HA.pct(kw, kl), HA.pct(bw, bl), "XP")
     end
-    table.insert(linhas, txt)
-    txt, w, l = comparar("Lvl/h", "niveis", function(v) return math.floor(v + 0.5) .. " lvl" end)
+
+    paragrafo()
+    w, l = comparar("Lvl/h", "niveis", function(v) return math.floor(v + 0.5) .. " lvl" end)
     if w then
         if w.lvl and l.lvl and w.lvl < l.lvl then
-            txt = txt .. " Comecou em level menor (Lv " .. w.lvl .. " x Lv " .. l.lvl .. "): cada level custa menos XP."
+            add(" Comecou em ")
+            add("level menor", HA.COR_MELHOR)
+            add(" (Lv ")
+            add(tostring(w.lvl), HA.COR_MELHOR)
+            add(" x Lv ")
+            add(tostring(l.lvl), HA.COR_PIOR)
+            add("): cada level custa menos XP.")
         elseif HA.porHoraTeste(w, "xp") > HA.porHoraTeste(l, "xp") then
-            txt = txt .. " Fez mais XP por hora."
+            add(" Fez ")
+            add("mais XP por hora", HA.COR_MELHOR)
+            add(".")
         end
     end
-    table.insert(linhas, txt)
-    txt, w, l = comparar("Lucro/h", "lucro", HA.tokens)
+
+    paragrafo()
+    w, l = comparar("Lucro/h", "lucro", HA.tokens)
     if w then
         local kw, kl = HA.porHoraTeste(w, "kills"), HA.porHoraTeste(l, "kills")
         local bw, bl = porBicho(w, "lucro"), porBicho(l, "lucro")
-        txt = txt .. " " .. HA.motivo(kw > kl, bw > bl, HA.pct(kw, kl), HA.pct(bw, bl), "loot")
+        HA.motivo(add, kw > kl, bw > bl, HA.pct(kw, kl), HA.pct(bw, bl), "loot")
     end
-    table.insert(linhas, txt)
+
     if (ra.reset or 0) ~= (rb.reset or 0) then
-        table.insert(linhas, "Obs: resets diferentes (Reset " .. (ra.reset or 0) .. " x Reset " .. (rb.reset or 0) .. ").")
+        paragrafo()
+        add("Obs: resets diferentes (Reset " .. (ra.reset or 0) .. " x Reset " .. (rb.reset or 0) .. ").")
     end
     for _, r in ipairs({ra, rb}) do
         if r.seg < 300 then
-            table.insert(linhas, "Obs: " .. nomes[r] .. " durou so " .. HA.formatarTempo(r.seg) ..
-                ", resultado menos confiavel.")
+            paragrafo()
+            add("Obs: ")
+            add(nomes[r], HA.COR_NOME)
+            add(" durou so ")
+            add(HA.formatarTempo(r.seg), HA.COR_PIOR)
+            add(", resultado menos confiavel.")
         end
     end
-    return table.concat(linhas, "\n\n")
+    return partes
+end
+
+function HA.textoDasPartes(partes)
+    local t = {}
+    for i = 1, #partes, 2 do table.insert(t, partes[i]) end
+    return table.concat(t)
 end
 
 function HA.atualizarTestes()
@@ -910,7 +979,10 @@ function HA.atualizarTestes()
         local vencedor = vitA > vitB and ra.nome or (vitB > vitA and rb.nome or "empate")
         HA.linhaComp("Melhor:", HA.cortar(vencedor, 9), vitA .. " x " .. vitB, "#55DD55", "#AAAAAA")
         local resumo = g_ui.createWidget("HAResumo", ui.comparacao)
-        resumo:setText(HA.explicar(ra, rb))
+        local partes = HA.explicar(ra, rb)
+        if not pcall(function() resumo:setColoredText(partes) end) then
+            resumo:setText(HA.textoDasPartes(partes))
+        end
     end
     HA.ajustarAltura()
 end
