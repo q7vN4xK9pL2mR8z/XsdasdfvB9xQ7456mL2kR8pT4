@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.4"
+HuntAnalyzer.VERSAO = "2.5"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -26,6 +26,8 @@ HA.amostras = {}
 HA.MAX_BICHOS_LISTA = 6
 HA.mortos = {}
 HA.mortosIds = {}
+HA.MAX_DROPS_GUARDADOS = 50
+HA.widgetsDrop = {}
 
 local function nomeChar()
     local ok, n = pcall(function() return player:getName() end)
@@ -126,6 +128,29 @@ function HA.contando()
     return not HA.sessao().pausado
 end
 
+function HA.ehRastreado(nome)
+    return tostring(nome or ""):lower():find("halloween", 1, true) ~= nil
+end
+
+function HA.tempoCurto(seg)
+    seg = math.max(math.floor(seg or 0), 0)
+    local h, m, sg = math.floor(seg / 3600), math.floor(seg % 3600 / 60), seg % 60
+    if h > 0 then return h .. "h" .. string.format("%02d", m) .. "m" end
+    return m .. "m" .. string.format("%02d", sg) .. "s"
+end
+
+function HA.textoDrop(s, k, nome, qtd, valor)
+    local txt = nome .. " x" .. qtd .. " = " .. HA.tokens(valor)
+    local drops = s.drops and s.drops[k]
+    if not drops or #drops == 0 then return txt end
+    txt = txt .. "\nDropou " .. qtd .. " em " .. HA.tempoCurto(s.seg)
+    txt = txt .. "\nMedia: 1 a cada " .. HA.tempoCurto(s.seg / qtd)
+    txt = txt .. "\nUltimo: ha " .. HA.tempoCurto(s.seg - drops[#drops])
+    local tempos = {}
+    for i = math.max(1, #drops - 9), #drops do table.insert(tempos, HA.tempoCurto(drops[i])) end
+    return txt .. "\nDrops em: " .. table.concat(tempos, ", ")
+end
+
 function HA.aoLoot(item, nome, qtd)
     if not HA.contando() then return end
     local id = item:getId()
@@ -135,6 +160,12 @@ function HA.aoLoot(item, nome, qtd)
     s.loot[k] = (s.loot[k] or 0) + qtd
     s.nomes[k] = nome or k
     s.lootValor = s.lootValor + HA.preco(id) * qtd
+    if HA.ehRastreado(nome) then
+        s.drops = s.drops or {}
+        s.drops[k] = s.drops[k] or {}
+        for _ = 1, qtd do table.insert(s.drops[k], s.seg) end
+        while #s.drops[k] > HA.MAX_DROPS_GUARDADOS do table.remove(s.drops[k], 1) end
+    end
     HA.lootMudou = true
     HA.dadosServidor = true
 end
@@ -642,6 +673,7 @@ function HA.atualizarItens()
     HA.lootMudou = false
     local s = HA.sessao()
     ui.itens:destroyChildren()
+    HA.widgetsDrop = {}
     local lista = {}
     for k, qtd in pairs(s.loot) do
         table.insert(lista, {id = tonumber(k), qtd = qtd, nome = s.nomes[k] or k})
@@ -651,7 +683,9 @@ function HA.atualizarItens()
         local wi = g_ui.createWidget("HAItem", ui.itens)
         pcall(function() wi:setItemId(it.id) end)
         wi:getChildById("qtd"):setText(HA.formatar(it.qtd))
-        wi:setTooltip(it.nome .. " x" .. it.qtd .. " = " .. HA.tokens(it.qtd * HA.preco(it.id)))
+        local k = tostring(it.id)
+        wi:setTooltip(HA.textoDrop(s, k, it.nome, it.qtd, it.qtd * HA.preco(it.id)))
+        if s.drops and s.drops[k] then HA.widgetsDrop[k] = {w = wi, nome = it.nome} end
     end
     local linhas = math.ceil(#lista / HA.COLUNAS_ITENS)
     ui.itens:setHeight(linhas * 36)
@@ -1040,6 +1074,10 @@ function HA.atualizarPainel()
         ui.status:setColor("#888888")
     end
     if HA.lootMudou then HA.atualizarItens() end
+    for k, d in pairs(HA.widgetsDrop) do
+        local qtd = s.loot[k] or 0
+        pcall(function() d.w:setTooltip(HA.textoDrop(s, k, d.nome, qtd, qtd * HA.preco(tonumber(k)))) end)
+    end
     if HA.bichosMudou then HA.atualizarBichos() end
     HA.pintarTeste()
     if HA.testesMudou then HA.atualizarTestes() end
