@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.5"
+HuntAnalyzer.VERSAO = "2.6"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -432,8 +432,16 @@ HuntAnalyzerWindow < UIWindow
         spacing: 1
         fit-children: true
       HASecao
+        id: sSessao
         text: Sessao
+        HABtn
+          id: min
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          margin-right: 1
+          size: 16 14
       Panel
+        id: linhaRelogio
         height: 24
         UILabel
           id: relogio
@@ -461,7 +469,14 @@ HuntAnalyzerWindow < UIWindow
       HALinha
         id: lKills
       HASecao
+        id: sBichos
         text: XP por bicho
+        HABtn
+          id: min
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          margin-right: 1
+          size: 16 14
       HALinha
         id: lAtual
       HALinha
@@ -474,7 +489,14 @@ HuntAnalyzerWindow < UIWindow
           spacing: 1
           fit-children: true
       HASecao
+        id: sSaques
         text: Saques
+        HABtn
+          id: min
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          margin-right: 1
+          size: 16 14
       Panel
         id: itens
         height: 0
@@ -485,7 +507,14 @@ HuntAnalyzerWindow < UIWindow
           cell-spacing: 2
           flow: true
       HASecao
+        id: sExp
         text: Experiencia
+        HABtn
+          id: min
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          margin-right: 1
+          size: 16 14
       HALinha
         id: lXp
       HALinha
@@ -1105,6 +1134,26 @@ function HA.mostrarAba(aba)
     ui.abaHunt:setColor(aba == "hunt" and "#FFD24A" or "#888888")
     ui.abaTestes:setColor(aba == "testes" and "#FFD24A" or "#888888")
     HA.ajustarAltura()
+end
+cfg.minimizado = cfg.minimizado or {}
+HA.SECOES = {
+    {id = "sSessao", itens = {"linhaRelogio", "lLucro", "lLucroHora", "lKills"}},
+    {id = "sBichos", itens = {"lAtual", "lAnterior", "listaBichos"}},
+    {id = "sSaques", itens = {"itens"}},
+    {id = "sExp", itens = {"lXp", "lXpMin", "lXp10", "lXpHora", "lXp15", "lNiv", "lNivMin", "lNiv10", "lNivHora", "lNiv15", "lProxNivel"}},
+}
+function HA.aplicarSecao(sec)
+    local fechada = cfg.minimizado[sec.id] == true
+    for _, id in ipairs(sec.itens) do el(id):setVisible(not fechada) end
+    el(sec.id):getChildById("min"):setText(fechada and "+" or "-")
+end
+for _, sec in ipairs(HA.SECOES) do
+    el(sec.id):getChildById("min").onClick = function()
+        cfg.minimizado[sec.id] = not cfg.minimizado[sec.id]
+        HA.aplicarSecao(sec)
+        HA.ajustarAltura()
+    end
+    HA.aplicarSecao(sec)
 end
 ui.abaHunt.onClick = function() HA.mostrarAba("hunt") end
 ui.abaTestes.onClick = function() HA.mostrarAba("testes") end
