@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.7"
+HuntAnalyzer.VERSAO = "2.8"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -19,6 +19,7 @@ cfg.nomeTeste = cfg.nomeTeste or ""
 cfg.bonus = cfg.bonus or {}
 HA.POTION_PCT = 5
 HA.MAX_POTIONS = 55
+HA.DURACAO_POTION = 1800
 HA.TABELA_POTIONS = {1, 5, 10, 20, 30, 40, 50, 55}
 HA.MAX_TESTES = 10
 HA.selecionados = {}
@@ -229,12 +230,31 @@ function HA.aoActivityBonus(txt)
     b.lidoEm = os.time()
 end
 
+function HA.aoUsarPotions(qtd)
+    local n = tonumber(qtd)
+    if not n then return end
+    local b = HA.bonusChar()
+    b.potions = math.max(0, math.min(HA.MAX_POTIONS, math.floor(n)))
+    b.usadasEm = os.time()
+    if HA.atualizarCampoPotions then HA.atualizarCampoPotions() end
+end
+
+function HA.checarFimPotions()
+    local b = HA.bonusChar()
+    if not b.usadasEm or os.time() - b.usadasEm < HA.DURACAO_POTION then return end
+    b.potions = 0
+    b.usadasEm = nil
+    if HA.atualizarCampoPotions then HA.atualizarCampoPotions() end
+end
+
 onTextMessage(function(mode, text)
     local t = tostring(text or "")
     local n = t:match("[Yy]ou gained (%d+) experience point")
     if n then pcall(HA.aoXpBicho, tonumber(n)) return end
     local ab = t:match("([%d%.,]+)%%%s*de Activity Bonus") or t:match("([%d%.,]+)%%%s*Activity Bonus")
-    if ab then pcall(HA.aoActivityBonus, ab) end
+    if ab then pcall(HA.aoActivityBonus, ab) return end
+    local usadas = t:match("[Uu]sou (%d+) po[^%s]* de XP")
+    if usadas then pcall(HA.aoUsarPotions, usadas) end
 end)
 
 macro(60000, function()
@@ -1184,7 +1204,8 @@ function HA.atualizarPotions()
         ui.activity:setText("use !bonusxp")
         ui.totalBonus:setText("--")
     end
-    ui.potBonus:setText("+" .. n * HA.POTION_PCT .. "%")
+    local fim = b.usadasEm and (" (" .. HA.tempoCurto(HA.DURACAO_POTION - (os.time() - b.usadasEm)) .. ")") or ""
+    ui.potBonus:setText("+" .. n * HA.POTION_PCT .. "%" .. fim)
     ui.potAgora:getParent():getChildById("nome"):setText("Agora (" .. n .. " pot)")
     local xpHora = HA.recente(s, "xp") or HA.porHora(s.xp, s)
     local lvlPorXp = (s.xp > 0 and s.niveis > 0) and s.niveis / s.xp or nil
@@ -1302,12 +1323,21 @@ end
 ui.abaHunt.onClick = function() HA.mostrarAba("hunt") end
 ui.abaTestes.onClick = function() HA.mostrarAba("testes") end
 ui.abaPotions.onClick = function() HA.mostrarAba("potions") end
+function HA.atualizarCampoPotions()
+    HA.mudandoCampo = true
+    ui.pQtd:setText(tostring(HA.bonusChar().potions or 0))
+    HA.mudandoCampo = false
+    HA.atualizarPainel()
+end
 ui.pQtd:setText(tostring(HA.bonusChar().potions or 0))
-ui.pQtd:setTooltip("Quantas potions de XP estao ativas agora (0 a " .. HA.MAX_POTIONS .. "). Veja no !comboinfo.")
+ui.pQtd:setTooltip("Potions de XP ativas (0 a " .. HA.MAX_POTIONS .. ").\nPreenche sozinho ao usar o combo e zera apos 30 min.")
 ui.pQtd.onTextChange = function(widget, texto)
+    if HA.mudandoCampo then return end
     local n = tonumber(texto)
     if n and n >= 0 and n <= HA.MAX_POTIONS then
-        HA.bonusChar().potions = math.floor(n)
+        local b = HA.bonusChar()
+        b.potions = math.floor(n)
+        b.usadasEm = nil
         HA.atualizarPainel()
     end
 end
@@ -1374,6 +1404,7 @@ macro(1000, function()
     if not s.pausado and passou > 0 and passou < 10 then s.seg = s.seg + passou end
     HA.amostrar(s)
     HA.checarTeste(s)
+    HA.checarFimPotions()
     if w:isVisible() then HA.atualizarPainel() end
 end)
 
