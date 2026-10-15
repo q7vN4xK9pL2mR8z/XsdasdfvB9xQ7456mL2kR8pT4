@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.8"
+HuntAnalyzer.VERSAO = "2.9"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -1209,15 +1209,16 @@ function HA.atualizarPotions()
     ui.potAgora:getParent():getChildById("nome"):setText("Agora (" .. n .. " pot)")
     local xpHora = HA.recente(s, "xp") or HA.porHora(s.xp, s)
     local lvlPorXp = (s.xp > 0 and s.niveis > 0) and s.niveis / s.xp or nil
-    local function texto(xp)
-        local t = HA.formatar(xp)
-        if lvlPorXp then t = t .. "  " .. HA.textoLvl(xp * lvlPorXp) end
+    local function texto(xp, sinal)
+        sinal = sinal or ""
+        local t = sinal .. HA.formatar(xp)
+        if lvlPorXp then t = t .. "  " .. sinal .. HA.textoLvl(xp * lvlPorXp) end
         return t
     end
     if xpHora <= 0 then
         for _, l in ipairs({ui.potXpBase, ui.potSem, ui.potAgora}) do l:setText("--") end
         for _, l in ipairs(HA.linhasPotions) do l.valor:setText("--") end
-        ui.pAviso:setText("Cace 1 min para medir a XP")
+        ui.pAviso:setText("Cace 1 min pra medir a XP")
         return
     end
     local base = xpHora / potMult
@@ -1225,9 +1226,11 @@ function HA.atualizarPotions()
     ui.potSem:setText(texto(base))
     ui.potAgora:setText(texto(xpHora))
     for _, l in ipairs(HA.linhasPotions) do
-        l.valor:setText("+" .. texto(base * l.k * HA.POTION_PCT / 100))
+        local ganho = base * l.k * HA.POTION_PCT / 100
+        l.valor:setText(texto(ganho, "+"))
+        l.valor:setTooltip("Soma ao Sem potion. Total com " .. l.k .. ": " .. texto(base + ganho) .. " por hora")
     end
-    ui.pAviso:setText("Por hora. Cada potion = +5% da XP sem potion")
+    ui.pAviso:setText("Ganho sobre o Sem potion")
 end
 
 function HA.atualizarPainel()
