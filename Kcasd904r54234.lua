@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "3.2"
+HuntAnalyzer.VERSAO = "3.3"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -299,6 +299,55 @@ function HA.aoXpBicho(xp)
     s.bichos[nome].xp = s.bichos[nome].xp + xp
     s.atual = {nome = nome, xp = xp}
     HA.bichosMudou = true
+    HA.aoKillHunt(HA.monstroDoNome(nome), xp)
+end
+
+HA.KILLS_JANELA = 20
+HA.PARADO_S = 60
+HA.MIN_MEDIDO_S = 120
+HA.ultimosKills = {}
+
+function HA.huntsChar()
+    local k = nomeChar()
+    cfg.hunts = cfg.hunts or {}
+    cfg.hunts[k] = cfg.hunts[k] or {}
+    return cfg.hunts[k]
+end
+
+function HA.huntAtual()
+    local cont, melhor, maior = {}, nil, 0
+    for _, nome in ipairs(HA.ultimosKills) do
+        cont[nome] = (cont[nome] or 0) + 1
+        if cont[nome] > maior then melhor, maior = nome, cont[nome] end
+    end
+    return melhor
+end
+
+function HA.registroHunt(nome)
+    local h = HA.huntsChar()
+    h[nome] = h[nome] or {seg = 0, kills = 0, xp = 0, niveis = 0, xpBase = 0, xpConhecido = 0}
+    return h[nome]
+end
+
+function HA.aoKillHunt(m, xp)
+    if not m then return end
+    table.insert(HA.ultimosKills, m[1])
+    while #HA.ultimosKills > HA.KILLS_JANELA do table.remove(HA.ultimosKills, 1) end
+    HA.ultimoKillEm = os.time()
+    local r = HA.registroHunt(HA.huntAtual())
+    r.kills = r.kills + 1
+    r.xpBase = r.xpBase + m[2]
+    r.xpConhecido = r.xpConhecido + xp
+end
+
+function HA.somarTempoHunt(passou, ganhoXp, ganhoNiv)
+    if not HA.ultimoKillEm or os.time() - HA.ultimoKillEm > HA.PARADO_S then return end
+    local nome = HA.huntAtual()
+    if not nome then return end
+    local r = HA.registroHunt(nome)
+    r.seg = r.seg + passou
+    r.xp = r.xp + ganhoXp
+    r.niveis = r.niveis + ganhoNiv
 end
 
 if onCreatureHealthPercentChange then
@@ -929,6 +978,10 @@ HuntAnalyzerWindow < UIWindow
         font: verdana-11px-rounded
         color: #888888
         text-wrap: true
+      HABtn
+        id: mApagar
+        text: Apagar medicao deste bicho
+        visible: false
     HABtn
       id: repassar
       margin-top: 6
@@ -996,7 +1049,12 @@ for _, k in ipairs(HA.TABELA_POTIONS) do
 end
 
 ui.paginaBichos, ui.abaBichos, ui.mBusca, ui.mItens = el("paginaBichos"), el("abaBichos"), el("mBusca"), el("mItens")
-ui.mTitulo, ui.mAviso = el("mTitulo"), el("mAviso")
+ui.mTitulo, ui.mAviso, ui.mApagar = el("mTitulo"), el("mAviso"), el("mApagar")
+ui.mApagar.onClick = function()
+    if cfg.bichoEscolhido then HA.huntsChar()[cfg.bichoEscolhido] = nil end
+    HA.atualizarBichosEscolha()
+    HA.ajustarAltura()
+end
 ui.mBase = linha("lMBase", "XP base")
 ui.mVida = linha("lMVida", "Vida / hit max")
 ui.mKill = linha("lMKill", "XP por kill (voce)", "#77FF77")
@@ -1020,6 +1078,7 @@ for _, m in ipairs(HA.MONSTROS) do
     b.onClick = function()
         cfg.bichoEscolhido = m[1]
         HA.atualizarBichosEscolha()
+        HA.ajustarAltura()
     end
     table.insert(HA.linhasMonstros, {w = b, m = m, busca = m[1]:lower()})
 end
@@ -1068,9 +1127,15 @@ function HA.atualizarBichosEscolha()
     end
     local linhas = {ui.mBase, ui.mVida, ui.mKill, ui.mKills, ui.mXpHora, ui.mLvlHora, ui.mComp}
     for _, l in ipairs(linhas) do l:setText("--") end
+    local hunts = HA.huntsChar()
+    for _, l in ipairs(HA.linhasMonstros) do
+        local r = hunts[l.m[1]]
+        l.w:getChildById("nome"):setColor((r and r.seg >= HA.MIN_MEDIDO_S) and "#77FF77" or "#FFFFFF")
+    end
     if not m then
         ui.mTitulo:setText("Escolha um bicho")
-        ui.mAviso:setText("Clique num bicho da lista")
+        ui.mAviso:setText("Clique num bicho. Verde = hunt ja medida")
+        ui.mApagar:setVisible(false)
         return
     end
     ui.mTitulo:setText(HA.cortar((m[1]:gsub("^Demolisher ", "")), 26))
@@ -1078,17 +1143,31 @@ function HA.atualizarBichosEscolha()
     ui.mVida:setText(HA.formatar(m[3]) .. " / " .. HA.formatar(m[4]))
     local s = HA.sessao()
     local c = HA.calibrar(s)
-    if not c then
+    local r = hunts[m[1]]
+    ui.mApagar:setVisible(r ~= nil)
+    local xpKill, killsHora, xpHora, lpx, aviso
+    if r and r.seg >= HA.MIN_MEDIDO_S and r.kills > 0 then
+        local bonusEpoca = r.xpBase > 0 and r.xpConhecido / r.xpBase or nil
+        local ajuste = (c and bonusEpoca and bonusEpoca > 0) and c.mult / bonusEpoca or 1
+        xpKill = r.xpConhecido / r.kills * ajuste
+        killsHora = r.kills * 3600 / r.seg
+        xpHora = r.xp * 3600 / r.seg * ajuste
+        lpx = HA.lvlPorXp(s) or ((r.xp > 0 and r.niveis > 0) and r.niveis / r.xp or nil)
+        aviso = "MEDIDO em " .. HA.tempoCurto(r.seg) .. " (" .. r.kills .. " kills)" ..
+            (ajuste ~= 1 and string.format(". Ajustado ao bonus de agora x%.2f", c.mult) or "")
+    elseif c then
+        xpKill = m[2] * c.mult
+        killsHora = c.danoHora / m[3]
+        xpHora = xpKill * killsHora
+        lpx = HA.lvlPorXp(s)
+        aviso = string.format("ESTIMADO: bonus x%.2f e o mesmo dano/hora de agora", c.mult)
+    else
         ui.mAviso:setText("Mate 1 min de bichos da lista pra medir seu bonus e dano")
         return
     end
-    local xpKill = m[2] * c.mult
-    local killsHora = c.danoHora / m[3]
-    local xpHora = xpKill * killsHora
     ui.mKill:setText(HA.formatar(xpKill))
     ui.mKills:setText(string.format("%.0f", killsHora))
     ui.mXpHora:setText(HA.formatar(xpHora))
-    local lpx = HA.lvlPorXp(s)
     ui.mLvlHora:setText(lpx and HA.textoLvl(xpHora * lpx) or "--")
     local atual = HA.porHora(s.xp, s)
     if atual > 0 then
@@ -1096,7 +1175,7 @@ function HA.atualizarBichosEscolha()
         ui.mComp:setText((p >= 0 and "+" or "") .. string.format("%.0f%%", p))
         ui.mComp:setColor(p >= 0 and "#77FF77" or "#FF7777")
     end
-    ui.mAviso:setText(string.format("Seu bonus x%.2f. Supoe o mesmo dano/hora de agora", c.mult))
+    ui.mAviso:setText(aviso)
 end
 
 function HA.ajustarAltura()
@@ -1738,16 +1817,22 @@ macro(1000, function()
     end
     local s = HA.sessao()
     local okX, xp = pcall(function() return player:getExperience() end)
+    local ganhoXp, ganhoNiv = 0, 0
     if okX and xp then
-        if HA.ultimaXp and xp > HA.ultimaXp and not s.pausado then s.xp = s.xp + (xp - HA.ultimaXp) end
+        if HA.ultimaXp and xp > HA.ultimaXp and not s.pausado then ganhoXp = xp - HA.ultimaXp end
+        s.xp = s.xp + ganhoXp
         HA.ultimaXp = xp
     end
     local nv = HA.nivelAtual()
     if nv then
-        if HA.ultimoNivel and nv > HA.ultimoNivel and not s.pausado then s.niveis = s.niveis + (nv - HA.ultimoNivel) end
+        if HA.ultimoNivel and nv > HA.ultimoNivel and not s.pausado then ganhoNiv = nv - HA.ultimoNivel end
+        s.niveis = s.niveis + ganhoNiv
         HA.ultimoNivel = nv
     end
-    if not s.pausado and passou > 0 and passou < 10 then s.seg = s.seg + passou end
+    if not s.pausado and passou > 0 and passou < 10 then
+        s.seg = s.seg + passou
+        HA.somarTempoHunt(passou, ganhoXp, ganhoNiv)
+    end
     HA.amostrar(s)
     HA.checarTeste(s)
     HA.checarFimPotions()
