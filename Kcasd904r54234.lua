@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "3.0"
+HuntAnalyzer.VERSAO = "3.1"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -238,8 +238,32 @@ function HA.aoUsarPotions(qtd)
     if HA.atualizarCampoPotions then HA.atualizarCampoPotions() end
 end
 
+function HA.potionsDoClient()
+    local ok, lista = pcall(function() return modules.game_exppotions.getBotSnapshot() end)
+    if not ok or type(lista) ~= "table" or #lista == 0 then return nil end
+    local n, menor = 0, nil
+    for _, p in ipairs(lista) do
+        local seg = tonumber(p.seconds) or 0
+        if seg > 0 then
+            n = n + 1
+            menor = menor and math.min(menor, seg) or seg
+        end
+    end
+    return math.min(n, HA.MAX_POTIONS), menor
+end
+
 function HA.checarFimPotions()
     local b = HA.bonusChar()
+    local n, menor = HA.potionsDoClient()
+    HA.fonteClient = n ~= nil
+    HA.menorRestante = menor
+    if n then
+        local mudou = b.potions ~= n
+        b.potions = n
+        b.usadasEm = nil
+        if mudou and HA.atualizarCampoPotions then HA.atualizarCampoPotions() end
+        return
+    end
     if not b.usadasEm or os.time() - b.usadasEm < HA.DURACAO_POTION then return end
     b.potions = 0
     b.usadasEm = nil
@@ -1209,8 +1233,11 @@ function HA.atualizarPotions()
         ui.activity:setText("use !bonusxp")
         ui.totalBonus:setText("--")
     end
-    local fim = b.usadasEm and (" (" .. HA.tempoCurto(HA.DURACAO_POTION - (os.time() - b.usadasEm)) .. ")") or ""
+    local restante = HA.fonteClient and HA.menorRestante or (b.usadasEm and HA.DURACAO_POTION - (os.time() - b.usadasEm))
+    local fim = restante and (" (" .. HA.tempoCurto(restante) .. ")") or ""
     ui.potBonus:setText("+" .. n * HA.POTION_PCT .. "%" .. fim)
+    ui.potBonus:getParent():getChildById("nome"):setText(HA.fonteClient and "Pot. client" or "Potions")
+    ui.potBonus:setTooltip(HA.fonteClient and "Lido do client: potions com tempo restante. O tempo e o da que acaba primeiro." or "Sem leitura do client: numero do combo ou digitado.")
     ui.potAgora:getParent():getChildById("nome"):setText("Agora (" .. n .. " pot)")
     local xpHora = HA.recente(s, "xp") or HA.porHora(s.xp, s)
     local lvlPorXp = (s.xp > 0 and s.niveis > 0) and s.niveis / s.xp or nil
