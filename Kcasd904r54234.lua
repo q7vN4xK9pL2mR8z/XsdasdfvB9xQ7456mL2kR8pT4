@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.9"
+HuntAnalyzer.VERSAO = "3.0"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -198,7 +198,6 @@ function HA.aoXpBicho(xp)
     s.bichos[nome] = s.bichos[nome] or {n = 0, xp = 0}
     s.bichos[nome].n = s.bichos[nome].n + 1
     s.bichos[nome].xp = s.bichos[nome].xp + xp
-    s.anterior = s.atual
     s.atual = {nome = nome, xp = xp}
     HA.bichosMudou = true
 end
@@ -524,8 +523,6 @@ HuntAnalyzerWindow < UIWindow
           size: 16 14
       HALinha
         id: lAtual
-      HALinha
-        id: lAnterior
       Panel
         id: listaBichos
         height: 0
@@ -743,7 +740,6 @@ local ui = {
     lucroHora = linha("lLucroHora", "Lucro por hora", "#55DD55"),
     kills = linha("lKills", "Derrotados"),
     atual = linha("lAtual", "Atual", "#77FF77"),
-    anterior = linha("lAnterior", "Anterior", "#AAAAAA"),
     listaBichos = el("listaBichos"),
     xp = linha("lXp", "XP total"),
     xpMin = linha("lXpMin", "XP por minuto"),
@@ -801,7 +797,6 @@ function HA.atualizarBichos()
         widget:setText(b and HA.formatar(b.xp) or "--")
     end
     mostrar(ui.atual, s.atual, "Atual")
-    mostrar(ui.anterior, s.anterior, "Anterior")
     ui.listaBichos:destroyChildren()
     local lista = {}
     for nome, b in pairs(s.bichos) do table.insert(lista, {nome = nome, n = b.n, xp = b.xp}) end
@@ -1191,6 +1186,16 @@ function HA.textoLvl(v)
     return string.format(v < 10 and "%.1f" or "%.0f", v) .. " lvl"
 end
 
+function HA.mostrarAviso(txt)
+    local visivel = txt ~= ""
+    ui.pAviso:setText(txt)
+    if HA.avisoVisivel ~= visivel then
+        HA.avisoVisivel = visivel
+        ui.pAviso:setVisible(visivel)
+        HA.ajustarAltura()
+    end
+end
+
 function HA.atualizarPotions()
     local s = HA.sessao()
     local b = HA.bonusChar()
@@ -1218,7 +1223,7 @@ function HA.atualizarPotions()
     if xpHora <= 0 then
         for _, l in ipairs({ui.potXpBase, ui.potSem, ui.potAgora}) do l:setText("--") end
         for _, l in ipairs(HA.linhasPotions) do l.valor:setText("--") end
-        ui.pAviso:setText("Cace 1 min pra medir a XP")
+        HA.mostrarAviso("Cace 1 min pra medir a XP")
         return
     end
     local base = xpHora / potMult
@@ -1227,10 +1232,10 @@ function HA.atualizarPotions()
     ui.potAgora:setText(texto(xpHora))
     for _, l in ipairs(HA.linhasPotions) do
         local ganho = base * l.k * HA.POTION_PCT / 100
-        l.valor:setText(texto(ganho, "+"))
-        l.valor:setTooltip("Soma ao Sem potion. Total com " .. l.k .. ": " .. texto(base + ganho) .. " por hora")
+        l.valor:setText(texto(base + ganho))
+        l.valor:setTooltip("Total por hora com " .. l.k .. " potions.\nAs potions somam " .. texto(ganho, "+") .. " ao Sem potion.")
     end
-    ui.pAviso:setText("Ganho sobre o Sem potion")
+    HA.mostrarAviso("")
 end
 
 function HA.atualizarPainel()
@@ -1306,7 +1311,7 @@ end
 cfg.minimizado = cfg.minimizado or {}
 HA.SECOES = {
     {id = "sSessao", itens = {"linhaRelogio", "lLucro", "lLucroHora", "lKills"}},
-    {id = "sBichos", itens = {"lAtual", "lAnterior", "listaBichos"}},
+    {id = "sBichos", itens = {"lAtual", "listaBichos"}},
     {id = "sSaques", itens = {"itens"}},
     {id = "sExp", itens = {"lXp", "lXpMin", "lXp10", "lXpHora", "lXp15", "lNiv", "lNivMin", "lNiv10", "lNivHora", "lNiv15", "lProxNivel"}},
 }
