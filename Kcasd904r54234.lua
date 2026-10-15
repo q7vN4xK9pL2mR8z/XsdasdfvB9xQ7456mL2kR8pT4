@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "2.6"
+HuntAnalyzer.VERSAO = "2.7"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -16,6 +16,10 @@ cfg.sessoes = cfg.sessoes or {}
 cfg.testes = cfg.testes or {}
 cfg.duracaoTeste = cfg.duracaoTeste or 600
 cfg.nomeTeste = cfg.nomeTeste or ""
+cfg.bonus = cfg.bonus or {}
+HA.POTION_PCT = 5
+HA.MAX_POTIONS = 55
+HA.TABELA_POTIONS = {1, 5, 10, 20, 30, 40, 50, 55}
 HA.MAX_TESTES = 10
 HA.selecionados = {}
 
@@ -211,9 +215,26 @@ if onCreatureHealthPercentChange then
     end)
 end
 
+function HA.bonusChar()
+    local k = nomeChar()
+    cfg.bonus[k] = cfg.bonus[k] or {potions = 0}
+    return cfg.bonus[k]
+end
+
+function HA.aoActivityBonus(txt)
+    local v = tonumber((txt:gsub(",", ".")))
+    if not v then return end
+    local b = HA.bonusChar()
+    b.activity = v
+    b.lidoEm = os.time()
+end
+
 onTextMessage(function(mode, text)
-    local n = tostring(text or ""):match("[Yy]ou gained (%d+) experience point")
-    if n then pcall(HA.aoXpBicho, tonumber(n)) end
+    local t = tostring(text or "")
+    local n = t:match("[Yy]ou gained (%d+) experience point")
+    if n then pcall(HA.aoXpBicho, tonumber(n)) return end
+    local ab = t:match("([%d%.,]+)%%%s*de Activity Bonus") or t:match("([%d%.,]+)%%%s*Activity Bonus")
+    if ab then pcall(HA.aoActivityBonus, ab) end
 end)
 
 macro(60000, function()
@@ -420,11 +441,15 @@ HuntAnalyzerWindow < UIWindow
       HABtn
         id: abaHunt
         text: HUNT
-        width: 91
+        width: 60
       HABtn
         id: abaTestes
         text: TESTES
-        width: 91
+        width: 60
+      HABtn
+        id: abaPotions
+        text: POTIONS
+        width: 60
     Panel
       id: paginaHunt
       layout:
@@ -607,6 +632,61 @@ HuntAnalyzerWindow < UIWindow
         id: tApagar
         text: Apagar selecionados
         margin-top: 2
+    Panel
+      id: paginaPotions
+      visible: false
+      layout:
+        type: verticalBox
+        spacing: 1
+        fit-children: true
+      HASecao
+        text: Bonus de XP
+      HALinha
+        id: lActivity
+      HABtn
+        id: pLerBonus
+        text: Ler !bonusxp
+        margin-top: 2
+      Panel
+        height: 18
+        margin-top: 2
+        UILabel
+          text: Potions ativas
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          font: verdana-11px-rounded
+          color: #CCCCCC
+          text-auto-resize: true
+        TextEdit
+          id: pQtd
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          width: 40
+          height: 18
+          font: verdana-11px-rounded
+      HALinha
+        id: lPotBonus
+      HALinha
+        id: lTotalBonus
+      HASecao
+        text: Ganho das potions
+      HALinha
+        id: lPotXpBase
+      HALinha
+        id: lPotSem
+      HALinha
+        id: lPotAgora
+      Panel
+        id: listaPotions
+        layout:
+          type: verticalBox
+          spacing: 1
+          fit-children: true
+      UILabel
+        id: pAviso
+        height: 14
+        font: verdana-11px-rounded
+        color: #888888
     HABtn
       id: repassar
       margin-top: 6
@@ -656,7 +736,23 @@ local ui = {
     nivHora = linha("lNivHora", "Lvl hora", "#FFD24A"),
     niv15 = linha("lNiv15", "Lvl hora (ult. 15 min)", "#6BB6FF"),
     proxNivel = linha("lProxNivel", "Prox. nivel em"),
+    abaPotions = el("abaPotions"), paginaPotions = el("paginaPotions"),
+    pLerBonus = el("pLerBonus"), pQtd = el("pQtd"), listaPotions = el("listaPotions"), pAviso = el("pAviso"),
+    activity = linha("lActivity", "Activity Bonus", "#FFD24A"),
+    potBonus = linha("lPotBonus", "Potions", "#77FF77"),
+    totalBonus = linha("lTotalBonus", "Activity x Potions", "#6BB6FF"),
+    potXpBase = linha("lPotXpBase", "XP hora medida"),
+    potSem = linha("lPotSem", "Sem potion", "#AAAAAA"),
+    potAgora = linha("lPotAgora", "Agora", "#FFD24A"),
 }
+
+HA.linhasPotions = {}
+for _, k in ipairs(HA.TABELA_POTIONS) do
+    local l = g_ui.createWidget("HALinha", ui.listaPotions)
+    l:getChildById("nome"):setText(k .. (k == 1 and " potion" or " potions"))
+    l:getChildById("valor"):setColor("#77FF77")
+    table.insert(HA.linhasPotions, {k = k, valor = l:getChildById("valor")})
+end
 
 function HA.ajustarAltura()
     HA.medirAltura()
@@ -666,6 +762,8 @@ end
 function HA.medirAltura()
     pcall(function() ui.paginaHunt:getLayout():update() end)
     pcall(function() ui.paginaTestes:getLayout():update() end)
+    pcall(function() ui.listaPotions:getLayout():update() end)
+    pcall(function() ui.paginaPotions:getLayout():update() end)
     pcall(function() ui.corpo:getLayout():update() end)
     w:setHeight(ui.corpo:getHeight() + 30)
 end
@@ -1069,6 +1167,48 @@ function HA.pintarTeste()
     end
 end
 
+function HA.textoLvl(v)
+    return string.format(v < 10 and "%.1f" or "%.0f", v) .. " lvl"
+end
+
+function HA.atualizarPotions()
+    local s = HA.sessao()
+    local b = HA.bonusChar()
+    local n = math.max(0, math.min(HA.MAX_POTIONS, math.floor(tonumber(b.potions) or 0)))
+    local potMult = 1 + n * HA.POTION_PCT / 100
+    if b.activity then
+        ui.activity:setText(string.format("%.2f%%", b.activity))
+        ui.activity:setTooltip("Lido do !bonusxp ha " .. HA.tempoCurto(os.time() - (b.lidoEm or os.time())))
+        ui.totalBonus:setText(string.format("x%.2f", (1 + b.activity / 100) * potMult))
+    else
+        ui.activity:setText("use !bonusxp")
+        ui.totalBonus:setText("--")
+    end
+    ui.potBonus:setText("+" .. n * HA.POTION_PCT .. "%")
+    ui.potAgora:getParent():getChildById("nome"):setText("Agora (" .. n .. " pot)")
+    local xpHora = HA.recente(s, "xp") or HA.porHora(s.xp, s)
+    local lvlPorXp = (s.xp > 0 and s.niveis > 0) and s.niveis / s.xp or nil
+    local function texto(xp)
+        local t = HA.formatar(xp)
+        if lvlPorXp then t = t .. "  " .. HA.textoLvl(xp * lvlPorXp) end
+        return t
+    end
+    if xpHora <= 0 then
+        for _, l in ipairs({ui.potXpBase, ui.potSem, ui.potAgora}) do l:setText("--") end
+        for _, l in ipairs(HA.linhasPotions) do l.valor:setText("--") end
+        ui.pAviso:setText("Cace 1 min para medir a XP")
+        return
+    end
+    local base = xpHora / potMult
+    ui.potXpBase:setText(HA.formatar(xpHora))
+    ui.potSem:setText(texto(base))
+    ui.potAgora:setText(texto(xpHora))
+    for _, l in ipairs(HA.linhasPotions) do
+        l.valor:setText("+" .. texto(base * l.k * HA.POTION_PCT / 100))
+    end
+    ui.pAviso:setText("Por hora. Cada potion = +5% da XP sem potion")
+end
+
 function HA.atualizarPainel()
     local s = HA.sessao()
     local lucro = s.lootValor + s.ouro
@@ -1110,6 +1250,7 @@ function HA.atualizarPainel()
     if HA.bichosMudou then HA.atualizarBichos() end
     HA.pintarTeste()
     if HA.testesMudou then HA.atualizarTestes() end
+    if cfg.aba == "potions" then HA.atualizarPotions() end
 end
 
 ui.pausar.onClick = function()
@@ -1126,13 +1267,16 @@ ui.repassar.onClick = function()
     HA.atualizarPainel()
 end
 el("closeButton").onClick = function() w:hide() end
-cfg.aba = cfg.aba == "testes" and "testes" or "hunt"
+if cfg.aba ~= "testes" and cfg.aba ~= "potions" then cfg.aba = "hunt" end
 function HA.mostrarAba(aba)
     cfg.aba = aba
     ui.paginaHunt:setVisible(aba == "hunt")
     ui.paginaTestes:setVisible(aba == "testes")
+    ui.paginaPotions:setVisible(aba == "potions")
     ui.abaHunt:setColor(aba == "hunt" and "#FFD24A" or "#888888")
     ui.abaTestes:setColor(aba == "testes" and "#FFD24A" or "#888888")
+    ui.abaPotions:setColor(aba == "potions" and "#FFD24A" or "#888888")
+    if aba == "potions" then HA.atualizarPotions() end
     HA.ajustarAltura()
 end
 cfg.minimizado = cfg.minimizado or {}
@@ -1157,6 +1301,21 @@ for _, sec in ipairs(HA.SECOES) do
 end
 ui.abaHunt.onClick = function() HA.mostrarAba("hunt") end
 ui.abaTestes.onClick = function() HA.mostrarAba("testes") end
+ui.abaPotions.onClick = function() HA.mostrarAba("potions") end
+ui.pQtd:setText(tostring(HA.bonusChar().potions or 0))
+ui.pQtd:setTooltip("Quantas potions de XP estao ativas agora (0 a " .. HA.MAX_POTIONS .. "). Veja no !comboinfo.")
+ui.pQtd.onTextChange = function(widget, texto)
+    local n = tonumber(texto)
+    if n and n >= 0 and n <= HA.MAX_POTIONS then
+        HA.bonusChar().potions = math.floor(n)
+        HA.atualizarPainel()
+    end
+end
+ui.pLerBonus.onClick = function()
+    say("!bonusxp")
+end
+ui.totalBonus:setTooltip("(1 + Activity) x (1 + potions x 5%).\nSupoe que o Activity multiplica a XP.\nStamina e Double XP ficam de fora.")
+ui.potXpBase:setTooltip("XP por hora dos ultimos 15 min (ou da sessao), com as potions ativas.")
 HA.MAX_MINUTOS = 600
 ui.tMinutos:setText(tostring(math.floor(cfg.duracaoTeste / 60)))
 ui.tNome:setText(cfg.nomeTeste)
