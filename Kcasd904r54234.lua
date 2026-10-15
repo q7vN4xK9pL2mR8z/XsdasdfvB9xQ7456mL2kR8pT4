@@ -1,6 +1,6 @@
 setDefaultTab("Main")
 HuntAnalyzer = HuntAnalyzer or {}
-HuntAnalyzer.VERSAO = "3.1"
+HuntAnalyzer.VERSAO = "3.2"
 
 if HuntAnalyzer.janela then
     HuntAnalyzer.janela:destroy()
@@ -21,6 +21,105 @@ HA.POTION_PCT = 5
 HA.MAX_POTIONS = 55
 HA.DURACAO_POTION = 1800
 HA.TABELA_POTIONS = {1, 5, 10, 20, 30, 40, 50, 55}
+HA.MONSTROS = {
+    {"Demolisher Maior Domus", 4760003, 40077800, 27766570, 1510, "500-700"},
+    {"Demolisher Moonspawn Oozecrown", 4760003, 40077800, 15061531, 1522, "500-700"},
+    {"Demolisher Elyraxs Spirit", 3760003, 35077800, 23964004, 1461, "400-500"},
+    {"Demolisher Night Harpy", 3760003, 35077800, 12798395, 1470, "400-500"},
+    {"Demolisher Gloom Maw", 2904003, 27077800, 16141548, 1451, "400-500"},
+    {"Demolisher Varg", 2904003, 27077800, 8608025, 1442, "400-500"},
+    {"Demolisher Bone Bear", 2640003, 26077800, 13554805, 1466, "400-500"},
+    {"Eldritch Dragon Lord", 2640003, 26077800, 7828125, 1457, "400-500"},
+    {"Demolisher Crypt Construct", 2376003, 24077800, 6335996, 1465, "400-500"},
+    {"Demolisher Crypt Fiend", 2376003, 24077800, 12313506, 1463, "400-500"},
+    {"Demolisher Hawk Hopper", 2244003, 22077800, 6776219, 1445, "400-500"},
+    {"Demolisher Lion Hydra", 2244003, 22077800, 12100997, 1446, "400-500"},
+    {"Demolisher Arcdrill Centurion", 1848003, 20077800, 6303390, 1230, "210-250"},
+    {"Demolisher Molten Gearmancer", 1848003, 20077800, 12040404, 1229, "210-250"},
+    {"Demolisher Candy Swirl Titan", 1584003, 19077800, 6291045, 1220, "210-250"},
+    {"Demolisher Candyfloss Horror", 1584003, 19077800, 11350710, 1211, "210-250"},
+    {"Demolisher Gnarlwood Devourer", 1452003, 18077800, 10881798, 1233, "210-250"},
+    {"Demolisher Witherblossom Maw", 1452003, 18077800, 6166597, 1232, "210-250"},
+    {"Demolisher Gorger Inferniarch", 1320003, 18077800, 10417725, 1255, "210-250"},
+    {"Demolisher Sineater Inferniarch", 1320003, 18077800, 5884489, 1253, "210-250"},
+    {"Demolisher Brinebrute Inferniarch", 1188003, 17077800, 10193749, 1252, "210-250"},
+    {"Demolisher Spellreaper Inferniarch", 1188003, 17077800, 5744301, 1250, "210-250"},
+    {"Demolisher Darklight Emitter", 924003, 15077800, 5467955, 702, "160-200"},
+    {"Demolisher Wandering Pillar", 924003, 15077800, 9734298, 697, "160-200"},
+    {"Demolisher Bloodjaw", 726003, 12077800, 9506810, 701, "160-200"},
+    {"Demolisher Converter", 726003, 12077800, 5215772, 705, "160-200"},
+    {"Demolisher Ichgahal", 620403, 12077800, 5061679, 691, "160-200"},
+    {"Demolisher Murcion", 620403, 12077800, 9027634, 692, "160-200"},
+    {"Demolisher Oozing Carcass", 554403, 11077800, 8840493, 703, "160-200"},
+    {"Demolisher Oozing Corpus", 554403, 11077800, 4949614, 704, "160-200"},
+    {"Demolisher Bloated Man Maggot", 488403, 10077800, 4814248, 700, "160-200"},
+    {"Demolisher Rotten Man Maggot", 488403, 10077800, 8404544, 699, "160-200"},
+    {"Demolisher Frozen Horror", 435603, 10077800, 7760693, 554, "110-150"},
+    {"Demolisher Lavafungus", 435603, 10077800, 4612787, 555, "110-150"},
+    {"Demolisher Gorzindel", 356403, 8077800, 7135934, 552, "110-150"},
+    {"Demolisher Prospector", 356403, 8077800, 4531500, 553, "110-150"},
+    {"Demolisher Animated Feather", 330003, 7577800, 3771450, 550, "110-150"},
+    {"Demolisher Ghulosh", 330003, 7577800, 6718717, 551, "110-150"},
+    {"Demolisher Dark Carnisylvan", 264003, 7077800, 3526309, 548, "110-150"},
+    {"Demolisher Great Schnitzel", 264003, 7077800, 5986897, 549, "110-150"},
+    {"Demolisher Branchy Demon", 224403, 6577800, 5929038, 547, "110-150"},
+    {"Demolisher Cloak Of Terror", 224403, 6577800, 3406002, 546, "110-150"},
+    {"Demolisher Titan Shadow", 120002, 5077800, 2689731, 522, "custom"},
+    {"Demolisher Titan Thanatursus", 120002, 5077800, 2808742, 533, "custom"},
+    {"Demolisher Titan Doomhauler", 90002, 4077800, 2417200, 540, "custom"},
+    {"Demolisher Titan Serpent", 90002, 4077800, 1986694, 536, "custom"},
+    {"Demolisher Titan Astral Power", 80002, 3777800, 1618796, 539, "custom"},
+    {"Demolisher Titan Shadowpelt", 80002, 3777800, 2276088, 541, "custom"},
+    {"Demolisher Leaf Golem", 70002, 3477800, 2141845, 516, "custom"},
+    {"Demolisher Librarian", 70002, 3477800, 1287770, 529, "custom"},
+    {"Demolisher Hungry Baron", 65002, 3277800, 2006915, 526, "custom"},
+    {"Demolisher Outcast", 65002, 3277800, 1168364, 534, "custom"},
+    {"Demolisher Count Of The Core", 60002, 3077800, 1883423, 527, "custom"},
+    {"Demolisher Glooth Anemone", 60002, 3077800, 1086001, 535, "custom"},
+    {"Demolisher Branchy Crawler", 55002, 3077800, 1635337, 513, "custom"},
+    {"Demolisher Teneshpar", 55002, 3077800, 992784, 360, "custom"},
+    {"Demolisher Breach Brood", 50002, 2777800, 902901, 538, "custom"},
+    {"Demolisher Hibernal Moth", 50002, 2777800, 1516605, 542, "custom"},
+    {"Demolisher Devouring Fish", 45002, 2577800, 818292, 537, "custom"},
+    {"Demolisher Nightmare Tendril", 45002, 2577800, 1405282, 353, "custom"},
+    {"Demolisher Misguided Shadow", 40002, 2577800, 817683, 522, "custom"},
+    {"Demolisher Thanatursus", 40002, 2577800, 1174185, 533, "custom"},
+    {"Demolisher Orclops Doomhauler", 35002, 2277800, 1100497, 540, "custom"},
+    {"Demolisher Seacrest Serpent", 35002, 2277800, 738420, 536, "custom"},
+    {"Demolisher Astral Power", 30002, 2077800, 659015, 539, "custom"},
+    {"Demolisher Shadowpelt", 30002, 2077800, 1006424, 541, "custom"},
+    {"Abominable Giant Werewolf", 27004, 1777800, 537000, 504, "custom"},
+    {"Demolisher King Zelos", 25018, 2077800, 359131, 503, "custom"},
+    {"Demolisher Ogre Ruffian", 22877, 1277800, 206446, 398, "custom"},
+    {"Demolisher Chopper", 20919, 1577800, 93068, 373, "custom"},
+    {"Demolisher Hive Overseer", 19130, 1277800, 172422, 371, "custom"},
+    {"Demolisher Rotspit", 17494, 1277800, 116231, 372, "custom"},
+    {"Demolisher Deep Vision", 15998, 977800, 137267, 369, "custom"},
+    {"Demolisher Toothy Fish", 14629, 977800, 82620, 368, "custom"},
+    {"Demolisher Titanus", 11185, 807800, 82620, 79, "custom"},
+    {"Demolisher Saphira", 10228, 707800, 39290, 351, "custom"},
+    {"Demolisher Demon Supremo", 10042, 506000, 32545, 12, "custom"},
+    {"Demolisher Criost", 9352, 577800, 51945, 248, "custom"},
+    {"Demolisher Blaze Hydra", 8552, 500800, 57050, 493, "custom"},
+    {"Demolisher Hydra Suprema", 7152, 477800, 57050, 106, "custom"},
+    {"Demolisher Guzzlemaw", 6540, 347800, 36080, 98, "custom"},
+    {"Frost Viserion Dragon", 5469, 400200, 27335, 248, "custom"},
+    {"Taco", 5001, 307800, 18984, 128, "custom"},
+    {"Super Demolisher Hellhound", 3824, 150000, 40000, 240, "custom"},
+    {"Demolisher Addiction Dragon", 3497, 247800, 32080, 351, "custom"},
+    {"Super Demolisher Rotworm", 3198, 280200, 40000, 295, "custom"},
+    {"Demolisher Hydra", 2674, 156200, 13135, 121, "custom"},
+    {"Demolisher Draconia", 2446, 145700, 11220, 34, "custom"},
+    {"Dexter", 2236, 288200, 16720, 128, "Dexter"},
+    {"Super Demolisher Dragon", 2045, 125700, 12050, 39, "custom"},
+    {"Demolisher Dragon", 1870, 105700, 2050, 39, "custom"},
+    {"Chandler Bing", 1094, 150200, 11220, 128, "Friends"},
+    {"Demolisher Grim Reaper", 1000, 95200, 5050, 300, "Undead Humanoids"},
+}
+HA.monstroPorChave = {}
+for _, m in ipairs(HA.MONSTROS) do
+    HA.monstroPorChave[m[1]:lower():gsub("^demolisher ", "")] = m
+end
 HA.MAX_TESTES = 10
 HA.selecionados = {}
 
@@ -425,6 +524,42 @@ HAResumo < UILabel
   text-auto-resize: true
   margin-top: 3
 
+HAMonstro < UIButton
+  height: 34
+  background-color: #1A1A1AEE
+  border-width: 1
+  border-color: #333333
+  $hover:
+    border-color: #8A8A8A
+  UICreature
+    id: icone
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    size: 32 32
+    phantom: true
+  UILabel
+    id: nome
+    anchors.left: icone.right
+    anchors.right: parent.right
+    anchors.top: parent.top
+    margin-left: 3
+    margin-top: 3
+    height: 14
+    font: verdana-11px-rounded
+    color: #FFFFFF
+    phantom: true
+  UILabel
+    id: info
+    anchors.left: icone.right
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-left: 3
+    margin-bottom: 3
+    height: 14
+    font: verdana-11px-rounded
+    color: #6BB6FF
+    phantom: true
+
 HAItem < UIItem
   size: 32 32
   virtual: true
@@ -484,15 +619,19 @@ HuntAnalyzerWindow < UIWindow
       HABtn
         id: abaHunt
         text: HUNT
-        width: 60
+        width: 38
       HABtn
         id: abaTestes
         text: TESTES
-        width: 60
+        width: 46
       HABtn
         id: abaPotions
         text: POTIONS
-        width: 60
+        width: 52
+      HABtn
+        id: abaBichos
+        text: BICHOS
+        width: 42
     Panel
       id: paginaHunt
       layout:
@@ -728,6 +867,68 @@ HuntAnalyzerWindow < UIWindow
         height: 14
         font: verdana-11px-rounded
         color: #888888
+    Panel
+      id: paginaBichos
+      visible: false
+      layout:
+        type: verticalBox
+        spacing: 1
+        fit-children: true
+      TextEdit
+        id: mBusca
+        height: 18
+        margin-top: 2
+        font: verdana-11px-rounded
+      Panel
+        id: mCaixa
+        height: 160
+        margin-top: 2
+        ScrollablePanel
+          id: mLista
+          anchors.top: parent.top
+          anchors.left: parent.left
+          anchors.bottom: parent.bottom
+          anchors.right: mScroll.left
+          vertical-scrollbar: mScroll
+          Panel
+            id: mItens
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            layout:
+              type: verticalBox
+              spacing: 1
+              fit-children: true
+        VerticalScrollBar
+          id: mScroll
+          anchors.top: parent.top
+          anchors.bottom: parent.bottom
+          anchors.right: parent.right
+          step: 35
+          pixels-scroll: true
+      HASecao
+        id: mTitulo
+        text: Escolha um bicho
+      HALinha
+        id: lMBase
+      HALinha
+        id: lMVida
+      HALinha
+        id: lMKill
+      HALinha
+        id: lMKills
+      HALinha
+        id: lMXpHora
+      HALinha
+        id: lMLvlHora
+      HALinha
+        id: lMComp
+      UILabel
+        id: mAviso
+        height: 28
+        font: verdana-11px-rounded
+        color: #888888
+        text-wrap: true
     HABtn
       id: repassar
       margin-top: 6
@@ -794,6 +995,110 @@ for _, k in ipairs(HA.TABELA_POTIONS) do
     table.insert(HA.linhasPotions, {k = k, valor = l:getChildById("valor")})
 end
 
+ui.paginaBichos, ui.abaBichos, ui.mBusca, ui.mItens = el("paginaBichos"), el("abaBichos"), el("mBusca"), el("mItens")
+ui.mTitulo, ui.mAviso = el("mTitulo"), el("mAviso")
+ui.mBase = linha("lMBase", "XP base")
+ui.mVida = linha("lMVida", "Vida / hit max")
+ui.mKill = linha("lMKill", "XP por kill (voce)", "#77FF77")
+ui.mKills = linha("lMKills", "Kills por hora", "#CCCCCC")
+ui.mXpHora = linha("lMXpHora", "XP por hora", "#77FF77")
+ui.mLvlHora = linha("lMLvlHora", "Lvl por hora", "#FFD24A")
+ui.mComp = linha("lMComp", "vs hunt atual", "#6BB6FF")
+
+function HA.cortar(txt, max)
+    if #txt <= max then return txt end
+    return txt:sub(1, max - 1) .. "."
+end
+
+HA.linhasMonstros = {}
+for _, m in ipairs(HA.MONSTROS) do
+    local b = g_ui.createWidget("HAMonstro", ui.mItens)
+    pcall(function() b:getChildById("icone"):setOutfit({type = m[5]}) end)
+    b:getChildById("nome"):setText(HA.cortar((m[1]:gsub("^Demolisher ", "")), 22))
+    b:getChildById("info"):setText(HA.formatar(m[2]) .. " xp  " .. (m[6]:find("%d") and ("TP " .. m[6]) or m[6]))
+    b:setTooltip(m[1])
+    b.onClick = function()
+        cfg.bichoEscolhido = m[1]
+        HA.atualizarBichosEscolha()
+    end
+    table.insert(HA.linhasMonstros, {w = b, m = m, busca = m[1]:lower()})
+end
+
+function HA.filtrarMonstros(texto)
+    local t = tostring(texto or ""):lower()
+    for _, l in ipairs(HA.linhasMonstros) do
+        l.w:setVisible(t == "" or l.busca:find(t, 1, true) ~= nil)
+    end
+end
+
+function HA.monstroDoNome(nome)
+    return HA.monstroPorChave[tostring(nome or ""):lower():gsub("^demolisher ", "")]
+end
+
+function HA.calibrar(s)
+    local xpReal, xpBase, vidaTotal = 0, 0, 0
+    for nome, b in pairs(s.bichos) do
+        local m = HA.monstroDoNome(nome)
+        if m then
+            xpReal = xpReal + b.xp
+            xpBase = xpBase + b.n * m[2]
+            vidaTotal = vidaTotal + b.n * m[3]
+        end
+    end
+    if xpBase <= 0 or s.seg < 60 then return nil end
+    return {mult = xpReal / xpBase, danoHora = vidaTotal * 3600 / s.seg}
+end
+
+function HA.lvlPorXp(s)
+    if s.xp > 0 and s.niveis > 0 then return s.niveis / s.xp end
+    local ok, falta = pcall(function()
+        local lv = player:getLevel()
+        return modules.game_skills.expForLevel(lv + 1) - modules.game_skills.expForLevel(lv)
+    end)
+    if ok and tonumber(falta) and falta > 0 then return 1 / falta end
+    return nil
+end
+
+function HA.atualizarBichosEscolha()
+    local m
+    for _, l in ipairs(HA.linhasMonstros) do
+        local escolhido = l.m[1] == cfg.bichoEscolhido
+        if escolhido then m = l.m end
+        l.w:setBorderColor(escolhido and "#FFD24A" or "#333333")
+    end
+    local linhas = {ui.mBase, ui.mVida, ui.mKill, ui.mKills, ui.mXpHora, ui.mLvlHora, ui.mComp}
+    for _, l in ipairs(linhas) do l:setText("--") end
+    if not m then
+        ui.mTitulo:setText("Escolha um bicho")
+        ui.mAviso:setText("Clique num bicho da lista")
+        return
+    end
+    ui.mTitulo:setText(HA.cortar((m[1]:gsub("^Demolisher ", "")), 26))
+    ui.mBase:setText(HA.formatar(m[2]))
+    ui.mVida:setText(HA.formatar(m[3]) .. " / " .. HA.formatar(m[4]))
+    local s = HA.sessao()
+    local c = HA.calibrar(s)
+    if not c then
+        ui.mAviso:setText("Mate 1 min de bichos da lista pra medir seu bonus e dano")
+        return
+    end
+    local xpKill = m[2] * c.mult
+    local killsHora = c.danoHora / m[3]
+    local xpHora = xpKill * killsHora
+    ui.mKill:setText(HA.formatar(xpKill))
+    ui.mKills:setText(string.format("%.0f", killsHora))
+    ui.mXpHora:setText(HA.formatar(xpHora))
+    local lpx = HA.lvlPorXp(s)
+    ui.mLvlHora:setText(lpx and HA.textoLvl(xpHora * lpx) or "--")
+    local atual = HA.porHora(s.xp, s)
+    if atual > 0 then
+        local p = (xpHora / atual - 1) * 100
+        ui.mComp:setText((p >= 0 and "+" or "") .. string.format("%.0f%%", p))
+        ui.mComp:setColor(p >= 0 and "#77FF77" or "#FF7777")
+    end
+    ui.mAviso:setText(string.format("Seu bonus x%.2f. Supoe o mesmo dano/hora de agora", c.mult))
+end
+
 function HA.ajustarAltura()
     HA.medirAltura()
     schedule(20, HA.medirAltura)
@@ -804,13 +1109,9 @@ function HA.medirAltura()
     pcall(function() ui.paginaTestes:getLayout():update() end)
     pcall(function() ui.listaPotions:getLayout():update() end)
     pcall(function() ui.paginaPotions:getLayout():update() end)
+    pcall(function() ui.paginaBichos:getLayout():update() end)
     pcall(function() ui.corpo:getLayout():update() end)
     w:setHeight(ui.corpo:getHeight() + 30)
-end
-
-function HA.cortar(txt, max)
-    if #txt <= max then return txt end
-    return txt:sub(1, max - 1) .. "."
 end
 
 function HA.atualizarBichos()
@@ -1307,6 +1608,10 @@ function HA.atualizarPainel()
     HA.pintarTeste()
     if HA.testesMudou then HA.atualizarTestes() end
     if cfg.aba == "potions" then HA.atualizarPotions() end
+    if cfg.aba == "bichos" then
+        HA.tickBichos = (HA.tickBichos or 0) + 1
+        if HA.tickBichos % 5 == 0 then HA.atualizarBichosEscolha() end
+    end
 end
 
 ui.pausar.onClick = function()
@@ -1323,16 +1628,19 @@ ui.repassar.onClick = function()
     HA.atualizarPainel()
 end
 el("closeButton").onClick = function() w:hide() end
-if cfg.aba ~= "testes" and cfg.aba ~= "potions" then cfg.aba = "hunt" end
+if cfg.aba ~= "testes" and cfg.aba ~= "potions" and cfg.aba ~= "bichos" then cfg.aba = "hunt" end
 function HA.mostrarAba(aba)
     cfg.aba = aba
     ui.paginaHunt:setVisible(aba == "hunt")
     ui.paginaTestes:setVisible(aba == "testes")
     ui.paginaPotions:setVisible(aba == "potions")
+    ui.paginaBichos:setVisible(aba == "bichos")
     ui.abaHunt:setColor(aba == "hunt" and "#FFD24A" or "#888888")
     ui.abaTestes:setColor(aba == "testes" and "#FFD24A" or "#888888")
     ui.abaPotions:setColor(aba == "potions" and "#FFD24A" or "#888888")
+    ui.abaBichos:setColor(aba == "bichos" and "#FFD24A" or "#888888")
     if aba == "potions" then HA.atualizarPotions() end
+    if aba == "bichos" then HA.atualizarBichosEscolha() end
     HA.ajustarAltura()
 end
 cfg.minimizado = cfg.minimizado or {}
@@ -1358,6 +1666,9 @@ end
 ui.abaHunt.onClick = function() HA.mostrarAba("hunt") end
 ui.abaTestes.onClick = function() HA.mostrarAba("testes") end
 ui.abaPotions.onClick = function() HA.mostrarAba("potions") end
+ui.abaBichos.onClick = function() HA.mostrarAba("bichos") end
+ui.mBusca:setTooltip("Buscar bicho pelo nome")
+ui.mBusca.onTextChange = function(widget, texto) HA.filtrarMonstros(texto) end
 function HA.atualizarCampoPotions()
     HA.mudandoCampo = true
     ui.pQtd:setText(tostring(HA.bonusChar().potions or 0))
